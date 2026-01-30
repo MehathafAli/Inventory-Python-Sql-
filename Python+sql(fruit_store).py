@@ -37,14 +37,22 @@ def add_fruit():
 
 def remove_fruit():
     name = input("Fruit to remove: ").lower()
-    cursor.execute("SELECT id FROM fruits WHERE name=%s", (name,))
-    if not cursor.fetchone():
-        print("Item not found")
-        return
 
-    cursor.execute("DELETE FROM fruits WHERE name=%s", (name,))
+    cursor.execute("SELECT id FROM fruits WHERE name=%s", (name,))
+    data = cursor.fetchone()
+    if not data:
+        print("Fruit not found")
+        return
+    fid = data[0]
+    cursor.execute("SELECT COUNT(*) FROM sales WHERE fruit_id=%s", (fid,))
+    count = cursor.fetchone()[0]
+    if count > 0:
+        print("Cannot delete fruit. Sales history exists.")
+        return
+    cursor.execute("DELETE FROM fruits WHERE id=%s", (fid,))
     db.commit()
     print("Fruit removed")
+
 
 def update_fruit():
     name = input("Fruit to update: ").lower()
@@ -157,14 +165,15 @@ def add_to_cart(cart):
     if qty > stock:
         print("Not enough stock")
         return
-
-    cursor.execute(
-        "UPDATE fruits SET quantity = quantity - %s  WHERE id=%s",
-        (qty, fid)
-    )
+    
     cart[item] = cart.get(item, 0) + qty  #update in cart if present
     db.commit()
     print("Added to cart")
+    def update_owner_item():
+        cursor.execute(
+            "UPDATE fruits SET quantity = quantity - %s  WHERE id=%s",
+            (qty, fid)
+        )
 
 def remove_from_cart(cart):
     item = input("Fruit to remove: ").lower()
@@ -287,7 +296,7 @@ def bill(cart):
 
     print("-" * 42)
     print(f"{'TOTAL':<32}{total}")
-
+    update_owner_item()
     db.commit()
     cart.clear()
 
@@ -344,6 +353,7 @@ while True:
     elif role == 3:
         print("Shop Closed")
         break
+
 
 
 
